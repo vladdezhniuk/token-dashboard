@@ -11,6 +11,7 @@
     "db:logs": "podman logs -f token-dashboard-db",
     "db:psql": "podman exec -it token-dashboard-db psql -U user -d token_dashboard",
     "db:schema": "cat db/*.schema.sql | podman exec -i token-dashboard-db psql -U user -d token_dashboard -v ON_ERROR_STOP=1",
+    "db:seed": "cat db/*.seed.sql | podman exec -i token-dashboard-db psql -U user -d token_dashboard -v ON_ERROR_STOP=1",
     "db:reset": "podman rm -f token-dashboard-db; podman volume rm token_dashboard_pgdata; bun run db:up",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
