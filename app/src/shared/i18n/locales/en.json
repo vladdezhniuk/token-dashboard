@@ -1,0 +1,53 @@
+{
+  "app": {
+    "title": "Token Dashboard",
+    "subtitle": "Connect a wallet and transfer DevToken (DVT)."
+  },
+  "common": {
+    "loading": "Loading…",
+    "refresh": "Refresh"
+  },
+  "wallet": {
+    "connect": "Connect wallet",
+    "connectPrompt": "Connect your wallet to get started."
+  },
+  "token": {
+    "balancePrompt": "Connect your wallet to see your balance."
+  },
+  "transfer": {
+    "title": "Transfer {{symbol}}",
+    "recipient": "Recipient address",
+    "recipientPlaceholder": "0x…",
+    "amount": "Amount ({{symbol}})",
+    "amountPlaceholder": "0.0",
+    "submit": "Send tokens",
+    "signing": "Confirm in wallet…",
+    "confirming": "Confirming…",
+    "connectPrompt": "Connect a wallet to transfer.",
+    "errors": {
+      "address": "Enter a valid 0x address",
+      "amount": "Amount must be greater than 0"
+    },
+    "toast": {
+      "success": "Transfer sent",
+      "error": "Transfer failed"
+    }
+  },
+  "history": {
+    "title": "Transfer history",
+    "connectPrompt": "Connect your wallet to see history.",
+    "signInPrompt": "Sign in with your wallet to view transfer history.",
+    "empty": "No transfers yet.",
+    "loadError": "Couldn't load history — is the backend reachable?",
+    "filters": {
+      "all": "All",
+      "sent": "Sent",
+      "received": "Received"
+    }
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signing": "Sign message…",
+    "verifying": "Verifying…"
+  }
+}
