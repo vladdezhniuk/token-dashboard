@@ -1,9 +1,9 @@
-import { useAccount, useReadContract } from 'wagmi'
+import { useReadContract } from 'wagmi'
 import { erc20Abi, tokenAddress } from '@/shared/blockchain'
+import { useTokenBalance } from './use-token-balance'
 
 /** Reads DevToken metadata (name/symbol/decimals) and the connected wallet's balance. */
 export function useToken() {
-  const { address } = useAccount()
   const configured = Boolean(tokenAddress)
 
   const name = useReadContract({
@@ -24,13 +24,7 @@ export function useToken() {
     functionName: 'decimals',
     query: { enabled: configured },
   })
-  const balance = useReadContract({
-    address: tokenAddress,
-    abi: erc20Abi,
-    functionName: 'balanceOf',
-    args: address ? [address] : undefined,
-    query: { enabled: Boolean(tokenAddress && address) },
-  })
+  const balance = useTokenBalance()
 
   return {
     configured,

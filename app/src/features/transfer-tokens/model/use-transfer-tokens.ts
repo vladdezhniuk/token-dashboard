@@ -4,6 +4,7 @@ import { waitForTransactionReceipt } from 'wagmi/actions'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { parseUnits, type Address, type Hex } from 'viem'
 import { erc20Abi, tokenAddress } from '@/shared/blockchain'
+import { pingHistoryPoll } from '@/entities/transfer'
 
 /** The two wallet-facing phases of a transfer in flight (drives the button label). */
 export type TransferPhase = 'signing' | 'confirming'
@@ -44,7 +45,10 @@ export function useTransferTokens(decimals: number) {
       await waitForTransactionReceipt(config, { hash })
       return hash
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['transfers', address] }),
+    onSuccess: () => {
+      pingHistoryPoll()
+      return queryClient.invalidateQueries({ queryKey: ['transfers', address] })
+    },
     onSettled: () => setPhase(undefined),
   })
 
