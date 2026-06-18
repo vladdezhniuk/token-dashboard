@@ -4,19 +4,13 @@ import { waitForTransactionReceipt } from 'wagmi/actions'
 import { useQueryClient } from '@tanstack/react-query'
 import { parseUnits, type Address, type Hex } from 'viem'
 import { erc20Abi, tokenAddress } from '@/shared/blockchain'
-import { saveTransfer } from '@/entities/transfer'
 
-export type TransferStatus = 'idle' | 'signing' | 'confirming' | 'saving' | 'success' | 'error'
-
-interface TransferResult {
-  hash: Hex
-  saved: boolean
-}
+export type TransferStatus = 'idle' | 'signing' | 'confirming' | 'success' | 'error'
 
 /**
- * Full transfer flow: sign `transfer(to, amount)` -> wait for the receipt ->
- * persist to the backend. A failed backend save is non-fatal (the tx already
- * succeeded on-chain), reported via `saved: false`.
+ * Transfer flow: sign `transfer(to, amount)` -> wait for the receipt -> refetch
+ * history. There is no POST endpoint: the backend ingests confirmed transfers from
+ * the chain, so the client only invalidates the history query. Returns the tx hash.
  */
 export function useTransferTokens(decimals: number) {
   const { address } = useAccount()
@@ -26,7 +20,7 @@ export function useTransferTokens(decimals: number) {
   const [status, setStatus] = useState<TransferStatus>('idle')
   const [error, setError] = useState<string>()
 
-  async function submit(to: string, amount: string): Promise<TransferResult | undefined> {
+  async function submit(to: string, amount: string): Promise<Hex | undefined> {
     if (!tokenAddress || !address) return undefined
     setError(undefined)
     try {
@@ -41,18 +35,10 @@ export function useTransferTokens(decimals: number) {
 
       setStatus('confirming')
       await waitForTransactionReceipt(config, { hash })
-
-      setStatus('saving')
-      let saved = true
-      try {
-        await saveTransfer({ from: address, to, amount, txHash: hash })
-        await queryClient.invalidateQueries({ queryKey: ['transfers', address] })
-      } catch {
-        saved = false
-      }
+      await queryClient.invalidateQueries({ queryKey: ['transfers', address] })
 
       setStatus('success')
-      return { hash, saved }
+      return hash
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Transaction failed')
       setStatus('error')

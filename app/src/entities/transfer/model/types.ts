@@ -1,17 +1,12 @@
-/** A persisted transfer record as returned by the backend history endpoint. */
+/** A persisted transfer record as returned by `GET /transfers` (backend column names). */
 export interface TransferRecord {
-  id: number
-  from: string
-  to: string
+  id: string
+  address_from: string
+  address_to: string
   amount: string
-  txHash: string
-  createdAt: string
+  tx_hash: string
+  created_at: string
 }
 
-/** Payload sent to persist a transfer after it is confirmed on-chain. */
-export interface SaveTransferInput {
-  from: string
-  to: string
-  amount: string
-  txHash: string
-}
+/** Filter for the history query — by sender (`sent`) or recipient (`received`). */
+export type TransferDirection = 'sent' | 'received'

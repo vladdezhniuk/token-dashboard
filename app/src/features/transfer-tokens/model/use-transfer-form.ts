@@ -45,12 +45,9 @@ export function useTransferForm(): UseTransferFormResult {
   const onSend = async () => {
     setTouched(true)
     if (!isValidAddress(to) || !isPositiveAmount(amount)) return
-    const res = await submit(to.trim(), amount.trim())
-    if (res) {
-      toast.show(
-        res.saved ? 'Transfer sent & saved to history' : 'Transfer sent (history save failed)',
-        res.saved ? 'success' : 'error',
-      )
+    const hash = await submit(to.trim(), amount.trim())
+    if (hash) {
+      toast.show('Transfer sent', 'success')
       setTo('')
       setAmount('')
       setTouched(false)

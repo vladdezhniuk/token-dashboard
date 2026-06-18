@@ -1,1 +1,1 @@
-export { HttpError, httpGet, httpPost } from './http'
+export { HttpError, httpGet, httpGetText, httpPost } from './http'

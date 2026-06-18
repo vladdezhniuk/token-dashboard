@@ -16,4 +16,14 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  // Dev: proxy the backend routes so the browser talks to the SAME origin (5173).
+  // This sidesteps CORS entirely and lets the SameSite=Lax session cookie flow
+  // (it is not sent on cross-origin fetches). The frontend uses relative URLs in
+  // dev (see shared/config/env.ts). Change the target if the API runs elsewhere.
+  server: {
+    proxy: {
+      '/auth': { target: 'http://localhost:3000', changeOrigin: true },
+      '/transfers': { target: 'http://localhost:3000', changeOrigin: true },
+    },
+  },
 })

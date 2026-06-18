@@ -7,7 +7,7 @@ const targetConfigured = networks.some((n) => n.id === env.chainId)
 
 /**
  * Automatically switches the connected wallet to the app's target chain
- * (VITE_CHAIN_ID — local Hardhat 31337 by default):
+ * (VITE_CHAIN_ID — Sepolia 11155111 in this project; falls back to 31337 Hardhat if unset):
  *   - right after a fresh connect, and
  *   - on initial page load if a wallet is already connected (wagmi reconnects).
  * Prompts MetaMask to add the chain if it isn't there yet. It tries once per

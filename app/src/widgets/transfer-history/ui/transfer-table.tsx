@@ -17,12 +17,12 @@ export function TransferTable({ rows }: { rows: TransferRecord[] }) {
         </thead>
         <tbody>
           {rows.map((t) => (
-            <tr key={t.txHash}>
-              <td className="text-on-surface-variant">{formatDate(t.createdAt)}</td>
-              <td className="font-mono">{shortenAddress(t.from)}</td>
-              <td className="font-mono">{shortenAddress(t.to)}</td>
+            <tr key={t.id}>
+              <td className="text-on-surface-variant">{formatDate(t.created_at)}</td>
+              <td className="font-mono">{shortenAddress(t.address_from)}</td>
+              <td className="font-mono">{shortenAddress(t.address_to)}</td>
               <td>{t.amount}</td>
-              <td className="font-mono">{shortenAddress(t.txHash, 6)}</td>
+              <td className="font-mono">{shortenAddress(t.tx_hash, 6)}</td>
             </tr>
           ))}
         </tbody>
