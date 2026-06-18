@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Post, Query, Res } from "@nestjs/common";
+import { Body, Controller, Get, Post, Req, Res } from "@nestjs/common";
 import { AuthService } from "./auth.service";
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { AuthDto } from "./dto/auth.dto";
 import { Public } from "./auth.decorator";
 
@@ -15,16 +15,17 @@ const accessCookieOptions = {
   path: '/',
 };
 
-@Public()
 @Controller('auth')
 export class AuthController {
     constructor(private readonly service: AuthService) {}
 
+    @Public()
     @Get('nonce')
     public async nonce () {
         return nonce;
     }
 
+    @Public()
     @Post('sign-in')
     public async singIn(
         @Body() body: AuthDto,
@@ -33,5 +34,11 @@ export class AuthController {
         const jwtToken = await this.service.signIn(body.address, body.signature);
 
         res.cookie(ACCESS_COOKIE, jwtToken, accessCookieOptions);
+    }
+
+    @Get('me')
+    public me(@Req() req: Request) {
+        const user = req['user'] as { userId: string; address: string };
+        return { address: user.address };
     }
 }

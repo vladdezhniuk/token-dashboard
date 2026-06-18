@@ -23,7 +23,7 @@ export class AuthService {
         const {rows} = await this.db.query(`select * from users where wallet_address = $1`, [address.toLowerCase()]);
         const userId = rows[0].id;
 
-        const payload = {sub: userId};
+        const payload = { sub: userId, address: address.toLowerCase() };
 
         return await this.jwt.signAsync(payload);
     }
