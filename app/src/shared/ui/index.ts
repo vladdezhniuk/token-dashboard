@@ -1,6 +1,6 @@
 export * from './icon'
 export * from './toast'
-export * from './toast-context'
+export * from './toast-api'
 export * from './button'
 export * from './card'
 export * from './card-header'

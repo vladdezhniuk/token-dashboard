@@ -1,6 +1,6 @@
 import { useAccount, useBalance, useDisconnect } from 'wagmi'
 import { useAppKit } from '@reown/appkit/react'
-import { Button, Card, CardHeader, Chip, EmptyState, IconButton, Spinner, Stat, useToast } from '@/shared/ui'
+import { Button, Card, CardHeader, Chip, EmptyState, IconButton, Spinner, Stat, toast } from '@/shared/ui'
 import { formatTokenAmount, shortenAddress } from '@/shared/lib'
 
 export function WalletPanel() {
@@ -8,12 +8,11 @@ export function WalletPanel() {
   const { address, isConnected, chain } = useAccount()
   const { disconnect } = useDisconnect()
   const { data: balance, isLoading } = useBalance({ address })
-  const toast = useToast()
 
   const copy = () => {
     if (!address) return
     void navigator.clipboard.writeText(address)
-    toast.show('Address copied', 'success')
+    toast.success('Address copied')
   }
 
   return (

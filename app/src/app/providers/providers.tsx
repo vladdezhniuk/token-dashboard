@@ -1,7 +1,7 @@
 import type { PropsWithChildren } from 'react'
 import { WagmiProvider } from 'wagmi'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { ToastProvider } from '@/shared/ui'
+import { Toaster } from '@/shared/ui'
 import { AuthProvider } from '@/features/auth'
 import { wagmiConfig } from './appkit'
 import { queryClient } from './query-client'
@@ -13,10 +13,9 @@ export function Providers({ children }: PropsWithChildren) {
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <ToastProvider>
-            <EnsureChain />
-            {children}
-          </ToastProvider>
+          <EnsureChain />
+          {children}
+          <Toaster />
         </AuthProvider>
       </QueryClientProvider>
     </WagmiProvider>

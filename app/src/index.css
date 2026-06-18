@@ -277,26 +277,9 @@
   }
   .md-table tbody tr:last-child td { @apply border-b-0; }
   .md-table tbody tr:hover { @apply bg-surface-container; }
-
-  /* ---------- snackbar / toast ---------- */
-  .md-snackbar-wrap {
-    @apply fixed left-1/2 bottom-6 flex flex-col gap-2 z-[1000] w-max max-w-[92vw];
-    transform: translateX(-50%);
-  }
-  .md-snackbar {
-    @apply flex items-center gap-3 min-w-[280px] py-3.5 px-4 rounded-xs
-           bg-surface-container-highest text-on-surface;
-    box-shadow: 0 3px 8px var(--color-shadow);
-    animation: md-snack-in 0.18s ease;
-  }
-  .md-snackbar--success { @apply bg-success-container text-on-success-container; }
-  .md-snackbar--error   { @apply bg-error-container text-on-error-container; }
 }
 
 /* ---------- keyframes (top level, outside @layer) ---------- */
 @keyframes md-spin {
   to { transform: rotate(360deg); }
-}
-@keyframes md-snack-in {
-  from { opacity: 0; transform: translateY(8px); }
 }

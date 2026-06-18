@@ -2,7 +2,7 @@ import { useForm } from 'react-hook-form'
 import { useAccount } from 'wagmi'
 import { isPositiveAmount, isValidAddress } from '@/shared/lib'
 import { useToken } from '@/entities/token'
-import { useToast } from '@/shared/ui'
+import { toast } from '@/shared/ui'
 import { useTransferTokens } from './use-transfer-tokens'
 import { transferStatusLabel } from '../lib/status-label'
 
@@ -21,7 +21,6 @@ export function useTransferForm() {
   const { isConnected } = useAccount()
   const { configured, decimals, symbol, refetch } = useToken()
   const { transfer, phase, isPending } = useTransferTokens(decimals)
-  const toast = useToast()
 
   const { register, handleSubmit, reset, formState } = useForm<TransferFields>({
     defaultValues: { to: '', amount: '' },
@@ -31,12 +30,11 @@ export function useTransferForm() {
   const onSubmit = handleSubmit(async ({ to, amount }) => {
     try {
       await transfer({ to: to.trim(), amount: amount.trim() })
-      toast.show('Transfer sent', 'success')
+      toast.success('Transfer sent')
       reset()
       refetch()
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Transfer failed'
-      toast.show(message.length > 80 ? 'Transfer failed' : message, 'error')
+    } catch {
+      // Failures surface via the global mutation error toast; just don't reset on error.
     }
   })
 
