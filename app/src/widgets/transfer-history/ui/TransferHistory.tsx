@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAccount } from 'wagmi'
 import { AsyncState, Button, Card, CardHeader, EmptyState, IconButton, SegmentedControl, Spinner } from '@/shared/ui'
-import { useTokenBalance } from '@/entities/token'
+import { useToken } from '@/entities/token'
 import { useTransferHistory, pingHistoryPoll, type TransferDirection } from '@/entities/transfer'
 import { useAuth } from '@/features/auth'
 import { TransferTable } from './transfer-table'
@@ -25,8 +25,9 @@ export function TransferHistory() {
   )
 
   // A balance move means a transfer touched this wallet (incl. incoming) — poll the
-  // history so it catches up. Skips the initial undefined -> value load.
-  const { data: balance } = useTokenBalance()
+  // history so it catches up. Skips the initial undefined -> value load. `decimals`
+  // formats the table amounts (stored as raw base units).
+  const { balance, decimals } = useToken()
   const prevBalance = useRef(balance)
   useEffect(() => {
     if (prevBalance.current !== undefined && prevBalance.current !== balance) pingHistoryPoll()
@@ -87,7 +88,7 @@ export function TransferHistory() {
             }
             emptyState={<EmptyState icon="inbox">No transfers yet.</EmptyState>}
           >
-            <TransferTable rows={data ?? []} />
+            <TransferTable rows={data ?? []} decimals={decimals} />
           </AsyncState>
         </div>
       )}

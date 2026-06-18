@@ -15,3 +15,16 @@ export function formatTokenAmount(value: bigint, decimals: number, fractionDigit
 export function formatTokenBalance(value: bigint, decimals: number, maximumFractionDigits = 4): string {
   return Number(formatUnits(value, decimals)).toLocaleString(undefined, { maximumFractionDigits })
 }
+
+/**
+ * Formats a transfer `amount` stored as raw base units (an integer string) for the
+ * history table. Falls back to the raw value if it isn't a clean integer (defensive
+ * against legacy/mixed rows).
+ */
+export function formatTransferAmount(raw: string, decimals: number): string {
+  try {
+    return formatTokenBalance(BigInt(raw), decimals)
+  } catch {
+    return raw
+  }
+}

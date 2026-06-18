@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS transfers (
     tx_hash      TEXT           NOT NULL,
     log_index    INTEGER        NOT NULL,
     created_at   TIMESTAMPTZ(3) NOT NULL DEFAULT now(),
-    -- One Transfer event = (tx_hash, log_index); a single tx can emit several.
     UNIQUE (tx_hash, log_index)
 );
 

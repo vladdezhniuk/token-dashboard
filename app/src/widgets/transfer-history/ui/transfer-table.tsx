@@ -1,8 +1,8 @@
-import { formatDate, shortenAddress } from '@/shared/lib'
+import { formatDate, formatTransferAmount, shortenAddress } from '@/shared/lib'
 import type { TransferRecord } from '@/entities/transfer'
 
 /** Presentational table of transfer records (newest first, as provided). */
-export function TransferTable({ rows }: { rows: TransferRecord[] }) {
+export function TransferTable({ rows, decimals }: { rows: TransferRecord[]; decimals: number }) {
   return (
     <div className="md-table-scroll">
       <table className="md-table">
@@ -21,7 +21,7 @@ export function TransferTable({ rows }: { rows: TransferRecord[] }) {
               <td className="text-on-surface-variant">{formatDate(t.created_at)}</td>
               <td className="font-mono">{shortenAddress(t.address_from)}</td>
               <td className="font-mono">{shortenAddress(t.address_to)}</td>
-              <td>{t.amount}</td>
+              <td>{formatTransferAmount(t.amount, decimals)}</td>
               <td className="font-mono">{shortenAddress(t.tx_hash, 6)}</td>
             </tr>
           ))}
