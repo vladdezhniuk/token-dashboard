@@ -3,6 +3,7 @@ import { AuthService } from "./auth.service";
 import type { Request, Response } from 'express';
 import { AuthDto } from "./dto/auth.dto";
 import { Public } from "./auth.decorator";
+import { log } from "node:console";
 
 const ACCESS_COOKIE = 'access_token';
 const nonce = process.env.WALLET_SIGN_NONCE;
