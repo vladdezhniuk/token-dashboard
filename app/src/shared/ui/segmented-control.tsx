@@ -5,7 +5,6 @@ interface SegmentOption<T extends string> {
   label: ReactNode
 }
 
-/** Compact single-select toggle group (Material-3 segmented buttons). */
 export function SegmentedControl<T extends string>({
   options,
   value,
@@ -16,7 +15,7 @@ export function SegmentedControl<T extends string>({
   onChange: (value: T) => void
 }) {
   return (
-    <div className="inline-flex items-center gap-0.5 p-0.5 rounded-full border border-outline-variant">
+    <div className="inline-flex items-center gap-1">
       {options.map((opt) => {
         const active = opt.value === value
         const tone = active
@@ -28,7 +27,7 @@ export function SegmentedControl<T extends string>({
             type="button"
             aria-pressed={active}
             onClick={() => onChange(opt.value)}
-            className={`h-8 px-4 rounded-full text-label-large cursor-pointer transition-colors ${tone}`}
+            className={`relative overflow-hidden h-9 px-4 rounded-full text-label-large cursor-pointer select-none transition-colors after:absolute after:inset-0 after:bg-current after:opacity-0 after:transition-opacity hover:after:opacity-[0.08] active:after:opacity-[0.12] ${tone}`}
           >
             {opt.label}
           </button>
