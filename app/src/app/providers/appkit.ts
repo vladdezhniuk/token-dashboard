@@ -11,8 +11,20 @@ if (!env.reownProjectId) {
   )
 }
 
-/** Networks the dashboard supports: local Hardhat (31337) + Sepolia testnet. */
-export const networks: [AppKitNetwork, ...AppKitNetwork[]] = [hardhat, sepolia]
+/**
+ * The single chain the dashboard targets, chosen by VITE_CHAIN_ID
+ * (31337 local Hardhat, 11155111 Sepolia). Register ONLY this chain:
+ * keeping Hardhat in a Sepolia deploy makes wagmi/AppKit hit Hardhat's default
+ * RPC (http://127.0.0.1:8545) on every background read → a flood of failed
+ * requests, since no local node is running.
+ */
+const supported: Record<number, AppKitNetwork> = {
+  [hardhat.id]: hardhat,
+  [sepolia.id]: sepolia,
+}
+export const networks: [AppKitNetwork, ...AppKitNetwork[]] = [
+  supported[env.chainId] ?? sepolia,
+]
 
 const wagmiAdapter = new WagmiAdapter({
   networks,
