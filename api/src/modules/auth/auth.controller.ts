@@ -6,6 +6,7 @@ import { Public } from "./auth.decorator";
 
 const ACCESS_COOKIE = 'access_token';
 const nonce = process.env.WALLET_SIGN_NONCE;
+
 const accessCookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === 'production',
