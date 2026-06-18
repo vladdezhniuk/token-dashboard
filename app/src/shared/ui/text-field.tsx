@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes } from 'react'
+import type { ComponentPropsWithRef } from 'react'
 
 /** Material-3 outlined text field with an optional label and help/error text. */
 export function TextField({
@@ -6,8 +6,9 @@ export function TextField({
   error,
   help,
   className,
+  ref,
   ...rest
-}: InputHTMLAttributes<HTMLInputElement> & {
+}: ComponentPropsWithRef<'input'> & {
   label?: string
   error?: boolean
   help?: string
@@ -15,7 +16,7 @@ export function TextField({
   return (
     <label className={`md-field${error ? ' md-field--error' : ''}${className ? ' ' + className : ''}`}>
       {label ? <span className="md-field__label text-body-medium">{label}</span> : null}
-      <input {...rest} />
+      <input ref={ref} {...rest} />
       <span className="md-field__help text-label-medium">{help ?? ''}</span>
     </label>
   )

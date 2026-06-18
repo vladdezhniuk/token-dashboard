@@ -1,30 +1,37 @@
 import { useState } from 'react'
 import { useAccount, useConfig, useWriteContract } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
-import { useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { parseUnits, type Address, type Hex } from 'viem'
 import { erc20Abi, tokenAddress } from '@/shared/blockchain'
 
-export type TransferStatus = 'idle' | 'signing' | 'confirming' | 'success' | 'error'
+/** The two wallet-facing phases of a transfer in flight (drives the button label). */
+export type TransferPhase = 'signing' | 'confirming'
+
+interface TransferInput {
+  to: string
+  amount: string
+}
 
 /**
- * Transfer flow: sign `transfer(to, amount)` -> wait for the receipt -> refetch
- * history. There is no POST endpoint: the backend ingests confirmed transfers from
- * the chain, so the client only invalidates the history query. Returns the tx hash.
+ * Transfer flow as a TanStack mutation: sign `transfer(to, amount)` -> wait for the
+ * receipt -> invalidate history. There is no POST endpoint — the backend ingests
+ * confirmed transfers from the chain, so the client only refetches the history query.
+ * `phase` exposes signing vs confirming; `transfer` (mutateAsync) resolves to the tx
+ * hash or throws.
  */
 export function useTransferTokens(decimals: number) {
   const { address } = useAccount()
   const config = useConfig()
   const { writeContractAsync } = useWriteContract()
   const queryClient = useQueryClient()
-  const [status, setStatus] = useState<TransferStatus>('idle')
-  const [error, setError] = useState<string>()
+  const [phase, setPhase] = useState<TransferPhase>()
 
-  async function submit(to: string, amount: string): Promise<Hex | undefined> {
-    if (!tokenAddress || !address) return undefined
-    setError(undefined)
-    try {
-      setStatus('signing')
+  const mutation = useMutation({
+    mutationFn: async ({ to, amount }: TransferInput): Promise<Hex> => {
+      if (!tokenAddress || !address) throw new Error('Wallet not connected')
+
+      setPhase('signing')
       const value = parseUnits(amount, decimals)
       const hash = await writeContractAsync({
         address: tokenAddress,
@@ -33,23 +40,18 @@ export function useTransferTokens(decimals: number) {
         args: [to as Address, value],
       })
 
-      setStatus('confirming')
+      setPhase('confirming')
       await waitForTransactionReceipt(config, { hash })
-      await queryClient.invalidateQueries({ queryKey: ['transfers', address] })
-
-      setStatus('success')
       return hash
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Transaction failed')
-      setStatus('error')
-      return undefined
-    }
-  }
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['transfers', address] }),
+    onSettled: () => setPhase(undefined),
+  })
 
-  function reset() {
-    setStatus('idle')
-    setError(undefined)
+  return {
+    transfer: mutation.mutateAsync,
+    phase,
+    isPending: mutation.isPending,
+    error: mutation.error,
   }
-
-  return { submit, reset, status, error }
 }

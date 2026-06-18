@@ -1,97 +1,98 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { PropsWithChildren } from 'react'
 import { useAccount, useSignMessage } from 'wagmi'
-import { useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getNonce, getSession, signIn as signInRequest } from '../api/auth.api'
 import { AuthContext, type AuthStatus } from '../model/auth-context'
 
 /**
- * Holds the wallet-signature session. On connect it first tries to RESTORE an
- * existing httpOnly cookie session via `GET /auth/me` (no wallet prompt) — so a
- * page reload with a live cookie does not re-trigger nonce + signature. Only when
- * there is no valid session for the connected wallet does it run the sign-in
- * (SIWE) flow: `GET /auth/nonce` -> sign -> `POST /auth/sign-in` (sets the cookie).
- * The session is valid only for the address it was issued for, so it falls away
- * when the wallet changes.
+ * Holds the wallet-signature session on top of TanStack Query.
+ *
+ * - `['session', wallet]` query restores an existing httpOnly cookie session via
+ *   `GET /auth/me` (no wallet prompt), so a reload with a live cookie does not
+ *   re-trigger nonce + signature. Keyed by wallet, so switching accounts re-probes.
+ * - The sign-in mutation runs the SIWE flow `GET /auth/nonce -> sign -> POST
+ *   /auth/sign-in` (sets the cookie), then primes the session cache.
+ * - When the probe finds no session for the connected wallet, sign-in is triggered
+ *   once (the `promptedFor` ref + the async probe gate keep it StrictMode-safe, so a
+ *   wallet only ever sees one signature prompt).
  */
 export function AuthProvider({ children }: PropsWithChildren) {
   const { address } = useAccount()
   const lower = address?.toLowerCase()
   const { signMessageAsync } = useSignMessage()
   const queryClient = useQueryClient()
-  const [authedAddress, setAuthedAddress] = useState<string>()
-  const [status, setStatus] = useState<AuthStatus>('idle')
-  const [error, setError] = useState<string>()
+  const [signPhase, setSignPhase] = useState<'signing' | 'verifying'>()
 
-  // Reset the transient sign-in state when the wallet changes (React's "adjust
-  // state during render" pattern). A freshly-connected wallet starts in 'checking'
-  // so the UI shows a loader, not the sign-in prompt, until the session probe
-  // below resolves. The session validity itself is derived, not stored as a flag.
-  const [prevAddress, setPrevAddress] = useState(address)
-  if (address !== prevAddress) {
-    setPrevAddress(address)
-    setStatus(address ? 'checking' : 'idle')
-    setError(undefined)
-  }
+  // Probe for an existing cookie session. staleTime: Infinity — the cookie does not
+  // change under us; we prime this cache by hand after a successful sign-in instead.
+  const session = useQuery({
+    queryKey: ['session', lower],
+    queryFn: () => getSession(),
+    enabled: Boolean(lower),
+    staleTime: Infinity,
+    retry: false,
+  })
 
-  const isAuthenticated = authedAddress !== undefined && authedAddress === lower
-
-  const signIn = useCallback(async () => {
-    if (!address) return
-    setError(undefined)
-    try {
-      setStatus('signing')
+  const signInMutation = useMutation({
+    mutationFn: async (): Promise<string> => {
+      if (!address) throw new Error('No wallet connected')
+      setSignPhase('signing')
       const nonce = await getNonce()
       const signature = await signMessageAsync({ message: nonce })
 
-      setStatus('verifying')
+      setSignPhase('verifying')
       await signInRequest(address, signature)
-
-      setAuthedAddress(address.toLowerCase())
-      setStatus('idle')
-      await queryClient.invalidateQueries({ queryKey: ['transfers'] })
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Sign-in failed')
-      setStatus('error')
-    }
-  }, [address, signMessageAsync, queryClient])
-
-  // Keep the latest signIn reachable WITHOUT listing it as an effect dependency.
-  // If the restore effect depended on signIn, a change in its identity (wagmi
-  // re-creating signMessageAsync) — or StrictMode's mount/unmount/mount — would
-  // re-run the effect mid-probe and strand it on 'checking'.
-  const signInRef = useRef(signIn)
-  useEffect(() => {
-    signInRef.current = signIn
+      return address.toLowerCase()
+    },
+    onSuccess: (authedAddress) => {
+      queryClient.setQueryData(['session', lower], authedAddress)
+      void queryClient.invalidateQueries({ queryKey: ['transfers'] })
+    },
+    onSettled: () => setSignPhase(undefined),
   })
 
-  // Once per connected address: restore an existing cookie session (no wallet
-  // prompt); only when there is none for THIS wallet, prompt the signature. The
-  // `active` flag drops state writes from a run whose address has since changed,
-  // and makes the flow StrictMode-safe (only the surviving run resolves status).
+  const { mutateAsync: runSignIn } = signInMutation
+  const signIn = useCallback(async () => {
+    // Errors surface via `status`/`error`; swallow the rejection so callers can
+    // safely `void signIn()`.
+    await runSignIn().catch(() => undefined)
+  }, [runSignIn])
+
+  // Auto sign-in once per wallet: when the probe resolves to "no session for THIS
+  // wallet", prompt the signature. The ref fires it once; because it only runs after
+  // the async probe settles (past the StrictMode mount/unmount/mount), it stays
+  // StrictMode-safe.
+  const promptedFor = useRef<string | undefined>(undefined)
   useEffect(() => {
-    if (!lower) return
-    let active = true
-    void (async () => {
-      setStatus('checking')
-      const sessionAddress = await getSession().catch(() => null)
-      if (!active) return
-      if (sessionAddress === lower) {
-        setAuthedAddress(lower)
-        setStatus('idle')
-        return
-      }
-      // No valid session for this wallet -> sign in (sets its own status).
-      await signInRef.current()
-    })()
-    return () => {
-      active = false
+    if (!lower) {
+      promptedFor.current = undefined
+      return
     }
-  }, [lower])
+    if (session.isLoading || session.data === lower) return
+    if (promptedFor.current === lower || signInMutation.isPending) return
+    promptedFor.current = lower
+    void signIn()
+  }, [lower, session.isLoading, session.data, signInMutation.isPending, signIn])
+
+  const isAuthenticated = Boolean(lower) && session.data === lower
+
+  // Order matters: an authenticated session wins over a stale error left from a
+  // previous wallet, and an in-flight re-probe (isLoading) shows the loader rather
+  // than that stale error.
+  const status: AuthStatus = isAuthenticated
+    ? 'idle'
+    : signInMutation.isPending
+      ? (signPhase ?? 'signing')
+      : session.isLoading
+        ? 'checking'
+        : signInMutation.isError
+          ? 'error'
+          : 'idle'
+
+  const error = signInMutation.error instanceof Error ? signInMutation.error.message : undefined
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, status, error, signIn }}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={{ isAuthenticated, status, error, signIn }}>{children}</AuthContext.Provider>
   )
 }

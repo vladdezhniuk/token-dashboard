@@ -1,74 +1,54 @@
-import { useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { useAccount } from 'wagmi'
 import { isPositiveAmount, isValidAddress } from '@/shared/lib'
 import { useToken } from '@/entities/token'
 import { useToast } from '@/shared/ui'
 import { useTransferTokens } from './use-transfer-tokens'
-import { isTransferBusy, transferStatusLabel } from '../lib/status-label'
+import { transferStatusLabel } from '../lib/status-label'
 
-export interface UseTransferFormResult {
+interface TransferFields {
   to: string
   amount: string
-  setTo: (value: string) => void
-  setAmount: (value: string) => void
-  toError?: string
-  amountError?: string
-  busy: boolean
-  disabled: boolean
-  label: string
-  symbol: string
-  isConnected: boolean
-  onSend: () => Promise<void>
 }
 
 /**
- * Drives the transfer form: field state, live validation (gated on `touched`),
- * and the submit flow — validate -> transfer -> toast -> reset & refetch.
- * Keeps the widget pure presentation.
+ * Drives the transfer form with react-hook-form: field registration + validation,
+ * and the submit flow — validate -> transfer mutation -> toast -> reset & refetch
+ * the balance. Keeps the widget pure presentation; `onSubmit` is the handler to wire
+ * onto the `<form>`.
  */
-export function useTransferForm(): UseTransferFormResult {
+export function useTransferForm() {
   const { isConnected } = useAccount()
   const { configured, decimals, symbol, refetch } = useToken()
-  const { submit, status, error } = useTransferTokens(decimals)
+  const { transfer, phase, isPending } = useTransferTokens(decimals)
   const toast = useToast()
 
-  const [to, setTo] = useState('')
-  const [amount, setAmount] = useState('')
-  const [touched, setTouched] = useState(false)
+  const { register, handleSubmit, reset, formState } = useForm<TransferFields>({
+    defaultValues: { to: '', amount: '' },
+    mode: 'onTouched',
+  })
 
-  const toError = touched && !isValidAddress(to) ? 'Enter a valid 0x address' : undefined
-  const amountError = touched && !isPositiveAmount(amount) ? 'Amount must be greater than 0' : undefined
-  const busy = isTransferBusy(status)
-  const disabled = !isConnected || !configured || busy
-  const label = transferStatusLabel(status)
-
-  const onSend = async () => {
-    setTouched(true)
-    if (!isValidAddress(to) || !isPositiveAmount(amount)) return
-    const hash = await submit(to.trim(), amount.trim())
-    if (hash) {
+  const onSubmit = handleSubmit(async ({ to, amount }) => {
+    try {
+      await transfer({ to: to.trim(), amount: amount.trim() })
       toast.show('Transfer sent', 'success')
-      setTo('')
-      setAmount('')
-      setTouched(false)
+      reset()
       refetch()
-    } else if (error) {
-      toast.show(error.length > 80 ? 'Transfer failed' : error, 'error')
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Transfer failed'
+      toast.show(message.length > 80 ? 'Transfer failed' : message, 'error')
     }
-  }
+  })
 
   return {
-    to,
-    amount,
-    setTo,
-    setAmount,
-    toError,
-    amountError,
-    busy,
-    disabled,
-    label,
+    toField: register('to', { validate: (v) => isValidAddress(v) || 'Enter a valid 0x address' }),
+    amountField: register('amount', { validate: (v) => isPositiveAmount(v) || 'Amount must be greater than 0' }),
+    errors: formState.errors,
+    onSubmit,
+    busy: isPending,
+    disabled: !isConnected || !configured || isPending,
+    label: transferStatusLabel(phase),
     symbol,
     isConnected,
-    onSend,
   }
 }
