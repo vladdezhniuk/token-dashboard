@@ -8,10 +8,14 @@ import { log } from "node:console";
 const ACCESS_COOKIE = 'access_token';
 const nonce = process.env.WALLET_SIGN_NONCE;
 
+const isProd = process.env.NODE_ENV === 'production';
+
 const accessCookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'lax' as const,
+  // Cross-site cookie (frontend and API on different domains in prod) requires
+  // SameSite=None, which browsers only accept together with Secure.
+  secure: isProd,
+  sameSite: isProd ? ('none' as const) : ('lax' as const),
   maxAge: 1000 * 60 * 60 * 24,
   path: '/',
 };
