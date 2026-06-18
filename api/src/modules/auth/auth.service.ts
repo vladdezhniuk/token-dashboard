@@ -20,7 +20,7 @@ export class AuthService {
             if (error.code !== '23505') throw error;
         }
 
-        const {rows} = await this.db.query(`select * from users where wallet_address = $1`, [address]);
+        const {rows} = await this.db.query(`select * from users where wallet_address = $1`, [address.toLowerCase()]);
         const userId = rows[0].id;
 
         const payload = {sub: userId};

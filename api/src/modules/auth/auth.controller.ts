@@ -2,7 +2,7 @@ import { Body, Controller, Get, Post, Query, Res } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import type { Response } from 'express';
 import { AuthDto } from "./dto/auth.dto";
-import { AuthGuard } from "./auth.guard";
+import { Public } from "./auth.decorator";
 
 const ACCESS_COOKIE = 'access_token';
 const nonce = process.env.WALLET_SIGN_NONCE;
@@ -14,6 +14,7 @@ const accessCookieOptions = {
   path: '/',
 };
 
+@Public()
 @Controller('auth')
 export class AuthController {
     constructor(private readonly service: AuthService) {}

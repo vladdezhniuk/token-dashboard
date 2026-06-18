@@ -28,7 +28,7 @@ export class TransfersService {
     : `address_from = $1 or address_to = $1`;
         const { rows } = await this.db.query<Transfer>(`select * from transfers
             where ${where}
-            order by created_at desc`, [address]);
+            order by created_at desc`, [address.toLowerCase()]);
 
             return rows;
     };

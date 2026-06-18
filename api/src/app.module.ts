@@ -6,9 +6,11 @@ import { DatabaseModule } from './shared/db/database.module';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthGuard } from './modules/auth/auth.guard';
 import { JwtModule } from '@nestjs/jwt';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
+    AuthModule,
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET,
