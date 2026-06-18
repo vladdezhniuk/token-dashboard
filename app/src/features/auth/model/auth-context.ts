@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react'
 
-export type AuthStatus = 'idle' | 'signing' | 'verifying' | 'error'
+export type AuthStatus = 'idle' | 'checking' | 'signing' | 'verifying' | 'error'
 
 export interface AuthApi {
   /** Whether a wallet-signature session has been established this session. */

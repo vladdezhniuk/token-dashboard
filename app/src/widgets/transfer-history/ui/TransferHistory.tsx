@@ -41,6 +41,10 @@ export function TransferHistory() {
 
       {!isConnected ? (
         <EmptyState icon="link_off">Connect your wallet to see history.</EmptyState>
+      ) : authStatus === 'checking' ? (
+        <div className="flex flex-1 items-center justify-center py-8">
+          <Spinner />
+        </div>
       ) : !isAuthenticated ? (
         <EmptyState
           icon="lock"
