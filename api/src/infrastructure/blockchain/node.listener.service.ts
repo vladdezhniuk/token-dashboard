@@ -1,14 +1,19 @@
 import { Injectable } from "@nestjs/common"
+import { rejects } from "node:assert";
 import { log } from "node:console"
+import { resolve } from "node:path";
+import { DatabaseService } from "src/shared/db/database.service";
 import { createPublicClient, erc20Abi, getContract, http } from "viem"
 import { sepolia } from "viem/chains"
 
 
 @Injectable()
 export class NodeListener {
+    constructor (private db: DatabaseService){}
+    public unwatch: null | (() => void) = null;
     public node = createPublicClient({
         chain: sepolia,
-        transport: http(),
+        transport: http(process.env.RPC_URL),
     })
 
     public contract = getContract({
@@ -18,13 +23,31 @@ export class NodeListener {
     })
 
     public watch() {
-        log('transfer event watching started')
-        return this.contract.watchEvent.Transfer(
+        const unwatch = this.contract.watchEvent.Transfer(
             {},
             {
-                onLogs : logs => log(`${logs}`)
+                onLogs: async (logs) => {
+                    await Promise.all(
+                        logs.map((l) =>
+                            this.db.query(
+                                `insert into transfers (address_from, address_to, amount, tx_hash)
+                                    values ($1, $2, $3, $4)
+                                    on conflict (tx_hash) do nothing
+                                    `,
+                                [
+                                    l.args.from!.toLowerCase(),
+                                    l.args.to!.toLowerCase(),
+                                    l.args.value!.toString(),
+                                    l.transactionHash,
+                                ],
+                            ),
+                        ),
+                    );
+                }
             }
         )
+
+        this.unwatch = unwatch;
     }
 
     onModuleInit() {
@@ -32,7 +55,6 @@ export class NodeListener {
     }
 
     onModuleDestroy() {
-        const unwatch = this.watch();
-        unwatch();
+        this.unwatch?.()
     }
 }
