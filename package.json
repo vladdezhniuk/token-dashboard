@@ -1,0 +1,19 @@
+{
+  "name": "token-dashboard",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Token Dashboard monorepo — React (FSD) frontend, NestJS (DDD) backend.",
+  "scripts": {
+    "setup": "bun install && cd app && bun install && cd ../api && bun install",
+    "db:up": "cd api && bun run db:up",
+    "db:stop": "cd api && bun run db:stop",
+    "db:logs": "cd api && bun run db:logs",
+    "db:psql": "cd api && bun run db:psql",
+    "db:schema": "cd api && bun run db:schema",
+    "db:reset": "cd api && bun run db:reset",
+    "dev": "concurrently -k -n api,web -c green,magenta \"cd api && bun run start:dev\" \"cd app && bun run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
