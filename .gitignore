@@ -1,0 +1,9 @@
+# root workspace
+node_modules
+
+# env
+.env
+.env.local
+
+# build output
+dist
