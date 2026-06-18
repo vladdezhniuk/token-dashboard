@@ -1,7 +1,4 @@
 import { Injectable } from "@nestjs/common"
-import { rejects } from "node:assert";
-import { log } from "node:console"
-import { resolve } from "node:path";
 import { DatabaseService } from "src/shared/db/database.service";
 import { createPublicClient, erc20Abi, getContract, http } from "viem"
 import { sepolia } from "viem/chains"
