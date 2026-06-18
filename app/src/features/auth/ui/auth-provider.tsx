@@ -11,13 +11,12 @@ import { AuthContext, type AuthStatus } from '../model/auth-context'
  * page reload with a live cookie does not re-trigger nonce + signature. Only when
  * there is no valid session for the connected wallet does it run the sign-in
  * (SIWE) flow: `GET /auth/nonce` -> sign -> `POST /auth/sign-in` (sets the cookie).
- * Both the restore and the sign-in are attempted once per address, so a rejected
- * signature won't loop (the "Sign in" button stays for a manual retry). The
- * session is valid only for the address it was issued for, so it falls away when
- * the wallet changes.
+ * The session is valid only for the address it was issued for, so it falls away
+ * when the wallet changes.
  */
 export function AuthProvider({ children }: PropsWithChildren) {
   const { address } = useAccount()
+  const lower = address?.toLowerCase()
   const { signMessageAsync } = useSignMessage()
   const queryClient = useQueryClient()
   const [authedAddress, setAuthedAddress] = useState<string>()
@@ -35,7 +34,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setError(undefined)
   }
 
-  const isAuthenticated = authedAddress !== undefined && authedAddress === address?.toLowerCase()
+  const isAuthenticated = authedAddress !== undefined && authedAddress === lower
 
   const signIn = useCallback(async () => {
     if (!address) return
@@ -57,36 +56,38 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
   }, [address, signMessageAsync, queryClient])
 
-  // Once per connected address: try to restore an existing cookie session, and
-  // only fall back to the signature flow when there is none for THIS wallet. The
-  // ref guard keeps it to a single attempt (no loop after a rejection/error).
-  const handledFor = useRef<string | undefined>(undefined)
+  // Keep the latest signIn reachable WITHOUT listing it as an effect dependency.
+  // If the restore effect depended on signIn, a change in its identity (wagmi
+  // re-creating signMessageAsync) — or StrictMode's mount/unmount/mount — would
+  // re-run the effect mid-probe and strand it on 'checking'.
+  const signInRef = useRef(signIn)
   useEffect(() => {
-    if (!address) {
-      handledFor.current = undefined
-      return
-    }
-    if (handledFor.current === address) return
-    handledFor.current = address
+    signInRef.current = signIn
+  })
 
-    let cancelled = false
+  // Once per connected address: restore an existing cookie session (no wallet
+  // prompt); only when there is none for THIS wallet, prompt the signature. The
+  // `active` flag drops state writes from a run whose address has since changed,
+  // and makes the flow StrictMode-safe (only the surviving run resolves status).
+  useEffect(() => {
+    if (!lower) return
+    let active = true
     void (async () => {
       setStatus('checking')
       const sessionAddress = await getSession().catch(() => null)
-      if (cancelled) return
-      if (sessionAddress === address.toLowerCase()) {
-        setAuthedAddress(address.toLowerCase())
+      if (!active) return
+      if (sessionAddress === lower) {
+        setAuthedAddress(lower)
         setStatus('idle')
         return
       }
-      // No valid session for this wallet -> prompt the signature (sets its own status).
-      await signIn()
+      // No valid session for this wallet -> sign in (sets its own status).
+      await signInRef.current()
     })()
-
     return () => {
-      cancelled = true
+      active = false
     }
-  }, [address, signIn])
+  }, [lower])
 
   return (
     <AuthContext.Provider value={{ isAuthenticated, status, error, signIn }}>
