@@ -3,8 +3,11 @@ CREATE TABLE IF NOT EXISTS transfers (
     address_from TEXT           NOT NULL,
     address_to   TEXT           NOT NULL,
     amount       NUMERIC        NOT NULL,
-    tx_hash      TEXT           NOT NULL UNIQUE,
-    created_at   TIMESTAMPTZ(3) NOT NULL DEFAULT now()
+    tx_hash      TEXT           NOT NULL,
+    log_index    INTEGER        NOT NULL,
+    created_at   TIMESTAMPTZ(3) NOT NULL DEFAULT now(),
+    -- One Transfer event = (tx_hash, log_index); a single tx can emit several.
+    UNIQUE (tx_hash, log_index)
 );
 
 

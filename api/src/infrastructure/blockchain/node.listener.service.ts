@@ -27,15 +27,16 @@ export class NodeListener {
                     await Promise.all(
                         logs.map((l) =>
                             this.db.query(
-                                `insert into transfers (address_from, address_to, amount, tx_hash)
-                                    values ($1, $2, $3, $4)
-                                    on conflict (tx_hash) do nothing
+                                `insert into transfers (address_from, address_to, amount, tx_hash, log_index)
+                                    values ($1, $2, $3, $4, $5)
+                                    on conflict (tx_hash, log_index) do nothing
                                     `,
                                 [
                                     l.args.from!.toLowerCase(),
                                     l.args.to!.toLowerCase(),
                                     l.args.value!.toString(),
                                     l.transactionHash,
+                                    l.logIndex,
                                 ],
                             ),
                         ),
