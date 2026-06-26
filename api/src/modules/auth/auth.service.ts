@@ -1,12 +1,15 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Inject, Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import { DatabaseService } from "src/shared/db/database.service";
-import {verifyMessage} from 'viem'
+import { verifyMessage } from 'viem'
+import { USER_REPOSITORY, type UserRepository } from "src/shared/db/repositories/user.repository";
 
 
 @Injectable()
 export class AuthService {
-    constructor(private db: DatabaseService, private jwt: JwtService) {}
+    constructor(
+        @Inject(USER_REPOSITORY) private readonly users: UserRepository,
+        private jwt: JwtService,
+    ) {}
     public async signIn (address: string, signature: string): Promise<string> {
         const verified  = await verifyMessage({address: address as `0x${string}`, message: process.env.WALLET_SIGN_NONCE!, signature: signature as `0x${string}`});
 
@@ -14,16 +17,9 @@ export class AuthService {
             throw new UnauthorizedException();
         }
 
-        try{
-            await this.db.query('insert into users (wallet_address) values ($1)', [address.toLowerCase()]);
-        } catch(error) {
-            if (error.code !== '23505') throw error;
-        }
+        const user = await this.users.upsertByWallet(address.toLowerCase());
 
-        const {rows} = await this.db.query(`select * from users where wallet_address = $1`, [address.toLowerCase()]);
-        const userId = rows[0].id;
-
-        const payload = { sub: userId, address: address.toLowerCase() };
+        const payload = { sub: user.id, address: address.toLowerCase() };
 
         return await this.jwt.signAsync(payload);
     }

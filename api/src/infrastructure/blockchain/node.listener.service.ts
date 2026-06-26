@@ -1,5 +1,5 @@
-import { Injectable, Logger } from "@nestjs/common"
-import { DatabaseService } from "src/shared/db/database.service";
+import { Inject, Injectable, Logger } from "@nestjs/common"
+import { TRANSFER_REPOSITORY, type TransferRepository } from "src/shared/db/repositories/transfer.repository";
 import { createPublicClient, erc20Abi, getContract, http } from "viem"
 import { sepolia } from "viem/chains"
 
@@ -7,7 +7,7 @@ import { sepolia } from "viem/chains"
 @Injectable()
 export class NodeListener {
     private readonly logger = new Logger(NodeListener.name)
-    constructor (private db: DatabaseService){}
+    constructor (@Inject(TRANSFER_REPOSITORY) private readonly transfers: TransferRepository){}
     public unwatch: null | (() => void) = null;
     public node = createPublicClient({
         chain: sepolia,
@@ -30,19 +30,13 @@ export class NodeListener {
                     try {
                         await Promise.all(
                             logs.map((l) =>
-                                this.db.query(
-                                    `insert into transfers (address_from, address_to, amount, tx_hash, log_index)
-                                        values ($1, $2, $3, $4, $5)
-                                        on conflict (tx_hash, log_index) do nothing
-                                        `,
-                                    [
-                                        l.args.from!.toLowerCase(),
-                                        l.args.to!.toLowerCase(),
-                                        l.args.value!.toString(),
-                                        l.transactionHash,
-                                        l.logIndex,
-                                    ],
-                                ),
+                                this.transfers.insert({
+                                    address_from: l.args.from!.toLowerCase(),
+                                    address_to: l.args.to!.toLowerCase(),
+                                    amount: l.args.value!.toString(),
+                                    tx_hash: l.transactionHash!,
+                                    log_index: l.logIndex!,
+                                }),
                             ),
                         );
                     } catch (e) {
